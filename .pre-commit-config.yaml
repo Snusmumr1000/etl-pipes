@@ -1,0 +1,31 @@
+repos:
+-   repo: local
+    hooks:
+    -   id: pytest
+        name: Run pytest
+        entry: pytest
+        language: system
+        types: [python]
+        pass_filenames: false
+
+-   repo: https://github.com/psf/black
+    rev: 23.7.0  # Update the version as needed
+    hooks:
+    -   id: black
+        args: ["--target-version", "py311"]
+
+-   repo: local
+    hooks:
+    -   id: ruff
+        name: Run ruff
+        entry: poetry run ruff check . --fix
+        language: system
+        pass_filenames: false
+        always_run: true
+
+    -   id: mypy
+        name: Run mypy
+        entry: poetry run mypy --strict --show-error-codes .
+        language: system
+        pass_filenames: false
+        always_run: true
