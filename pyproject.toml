@@ -1,0 +1,59 @@
+[tool.poetry]
+name = "etl-pipes"
+version = "0.1.0"
+description = ""
+authors = ["Tikhon Zaikin <th@thevhs.club>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pip = "^23.2"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.0.277"
+black = "^23.3.0"
+mypy = "^1.4.1"
+pytest = "^7.4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+select = [
+  "E",   # pycodestyle
+  "F",   # pyflakes
+  "UP",  # pyupgrade
+  "W",   # warnings
+  "I",   # import order
+  "N",   # pep8 naming
+  "PL",  # pylint
+  "RUF", # ruff
+  "PTH", # path
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py3.11']
+include = '\.pyi?$'
+
+[tool.mypy]
+plugins = [
+  "pydantic.mypy"
+]
+
+follow_imports = "silent"
+warn_redundant_casts = true
+warn_unused_ignores = true
+disallow_any_generics = true
+check_untyped_defs = true
+no_implicit_reexport = true
+
+# for strict mypy: (this is the tricky one :-))
+disallow_untyped_defs = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+

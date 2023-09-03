@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+while getopts "ctr" opt; do
+  case $opt in
+    c)
+      ./lint
+      ;;
+    t)
+      ./test
+      ;;
+    r)
+      python main.py
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+poetry run black --target-version py311 .
+poetry run ruff check . --fix
+poetry run mypy --strict --show-error-codes .
