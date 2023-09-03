@@ -96,7 +96,35 @@ class PipelineTypeError(PipelineError):
     def __init__(self, current_pipe: BasePipe, next_pipe: BasePipe) -> None:
         self.current_pipe = current_pipe
         self.next_pipe = next_pipe
-        super().__init__(
-            f"Current pipe {current_pipe} return type "
-            f"does not match next pipe {next_pipe} argument type"
+        super().__init__(self._generate_message())
+
+    def _generate_message(self) -> str:
+        s = "Typing error in pipeline:\n"
+        cp_anns = self.current_pipe.__call__.__annotations__
+        s += (
+            f"{self.current_pipe}: "
+            f"{self._transform_annotations_to_readable_string(cp_anns)}\n"
         )
+        np_anns = self.next_pipe.__call__.__annotations__
+        s += (
+            f"{self.next_pipe}: "
+            f"{self._transform_annotations_to_readable_string(np_anns)}\n"
+        )
+        return s
+
+    def _transform_annotations_to_readable_string(
+        self, annotations_: dict[str, Any]
+    ) -> str:
+        s = (
+            "(\n\t\t"
+            + ", \n".join(
+                [
+                    f"{key}: {value}"
+                    for key, value in annotations_.items()
+                    if key != "return"
+                ]
+            )
+            + "\n)"
+        )
+        s = s + " -> " + str(annotations_.get("return"))
+        return s

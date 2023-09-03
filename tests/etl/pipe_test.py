@@ -49,7 +49,6 @@ async def test_simple_combination_of_transformations(
 @pytest.mark.asyncio
 async def test_cant_connect_unmatching_pipes(
     simple_outer_to_inner_pipe: OuterToInnerPipe,
-    convert_to_american_pipe: ToAmericanPipe,
 ) -> None:
     with pytest.raises(PipelineTypeError):
-        convert_to_american_pipe >> simple_outer_to_inner_pipe
+        simple_outer_to_inner_pipe >> simple_outer_to_inner_pipe
