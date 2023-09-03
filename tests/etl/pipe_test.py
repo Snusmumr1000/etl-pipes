@@ -1,6 +1,7 @@
 import pytest
 
-from etl_pipes.pipes.base_pipe import PipelineTypeError
+from etl_pipes.pipes.pipeline.exceptions import PipelineTypeError
+from etl_pipes.pipes.pipeline.pipeline import Pipeline
 from tests.etl.odds.convert_to_american_pipe import ToAmericanPipe
 from tests.etl.odds.transform_pipe import OuterToInnerPipe
 from tests.etl.odds.types import InnerOdds, OuterOdds
@@ -39,7 +40,12 @@ async def test_simple_combination_of_transformations(
     simple_outer_to_inner_pipe: OuterToInnerPipe,
     convert_to_american_pipe: ToAmericanPipe,
 ) -> None:
-    pipeline = simple_outer_to_inner_pipe >> convert_to_american_pipe
+    pipeline = Pipeline(
+        [
+            simple_outer_to_inner_pipe,
+            convert_to_american_pipe,
+        ]
+    )
 
     converted_data = await pipeline(simple_outer_odds)
 
@@ -51,4 +57,9 @@ async def test_cant_connect_unmatching_pipes(
     simple_outer_to_inner_pipe: OuterToInnerPipe,
 ) -> None:
     with pytest.raises(PipelineTypeError):
-        simple_outer_to_inner_pipe >> simple_outer_to_inner_pipe
+        Pipeline(
+            [
+                simple_outer_to_inner_pipe,
+                simple_outer_to_inner_pipe,
+            ]
+        )

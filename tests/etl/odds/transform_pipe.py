@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from _decimal import Decimal
 
-from etl_pipes.pipes.base_pipe import BasePipe
+from etl_pipes.pipes.pipeline.base_pipe import BasePipe
 from tests.etl.odds.types import InnerOdds, OddsId, OuterOdds
 
 
