@@ -4,6 +4,8 @@ from collections.abc import Generator
 import pytest
 
 from tests.etl.odds.fixtures.primitive import (  # noqa: F401
+    convert_to_american_pipe,
+    simple_inner_american_odds,
     simple_inner_odds,
     simple_outer_odds,
     simple_outer_to_inner_pipe,
