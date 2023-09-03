@@ -1,9 +1,13 @@
+from dataclasses import dataclass
+
 from _decimal import Decimal
 
+from etl_pipes.pipes.base_pipe import BasePipe
 from tests.etl.odds.types import InnerOdds, OddsId, OuterOdds
 
 
-class OuterToInnerPipe:
+@dataclass
+class OuterToInnerPipe(BasePipe):
     async def __call__(self, outer_odds: OuterOdds) -> InnerOdds:
         id_, name = outer_odds.selection.name.split("_")
         value = Decimal(
