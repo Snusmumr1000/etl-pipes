@@ -4,17 +4,13 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from etl_pipes.pipes.pipeline.base_pipe import BasePipe
-from etl_pipes.pipes.pipeline.exceptions import (
-    ElementIsNotPipeError,
-    NoPipesInPipelineError,
-    OnlyOnePipeInPipelineError,
-    PipelineTypeError,
-)
+from etl_pipes.pipes.pipeline.pipe_welding_validator import PipeWeldingValidator
 
 
 @dataclass
-class Pipeline:
+class Pipeline(BasePipe):
     pipes: list[BasePipe] = field(default_factory=list)
+    validator: PipeWeldingValidator = field(default_factory=PipeWeldingValidator)
 
     def __post_init__(self) -> None:
         self._validate()
@@ -22,9 +18,9 @@ class Pipeline:
     async def __call__(self, *args: Any, **kwargs: Any) -> Any:
         self._validate()
 
-        first_pipe = self.pipes[0]
+        first_pipe, *rest_of_pipes = self.pipes
         data = await first_pipe(*args, **kwargs)
-        for pipe in self.pipes[1:]:
+        for pipe in rest_of_pipes:
             data = await pipe(data)
         return data
 
@@ -35,39 +31,4 @@ class Pipeline:
         return self
 
     def _validate(self) -> None:
-        if not self.pipes:
-            raise NoPipesInPipelineError()
-        if len(self.pipes) == 1:
-            raise OnlyOnePipeInPipelineError()
-
-        for pipe in self.pipes:
-            if not isinstance(pipe, BasePipe):
-                raise ElementIsNotPipeError(pipe)
-
-        self._validate_pipe_typing()
-
-    def _validate_pipe_typing(self) -> None:
-        for i in range(len(self.pipes) - 1):
-            next_pipe = self.pipes[i + 1]
-            next_pipe_types = {**next_pipe.__call__.__annotations__}
-            del next_pipe_types["return"]
-            next_pipe_arg_types = next_pipe_types
-
-            if len(next_pipe_arg_types.items()) == 0:
-                next_pipe_arg_type = None
-
-            elif len(next_pipe_arg_types.items()) == 1:
-                next_pipe_arg_type = next_pipe_arg_types.popitem()[1]
-
-            else:
-                next_pipe_arg_type = tuple[  # type: ignore
-                    *next_pipe_arg_types.values()
-                ]
-
-            current_pipe = self.pipes[i]
-            current_pipe_return_type = current_pipe.__call__.__annotations__.get(
-                "return"
-            )
-
-            if current_pipe_return_type != next_pipe_arg_type:
-                raise PipelineTypeError(current_pipe, next_pipe)
+        self.validator.validate(self.pipes)
