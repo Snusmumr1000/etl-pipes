@@ -3,13 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from etl_pipes.pipes.pipeline.base_pipe import BasePipe
+from etl_pipes.pipes.pipeline.base_pipe import Pipe
 from etl_pipes.pipes.pipeline.pipe_welding_validator import PipeWeldingValidator
 
 
 @dataclass
-class Pipeline(BasePipe):
-    pipes: list[BasePipe] = field(default_factory=list)
+class Pipeline(Pipe):
+    pipes: list[Pipe] = field(default_factory=list)
     validator: PipeWeldingValidator = field(default_factory=PipeWeldingValidator)
 
     def __post_init__(self) -> None:
@@ -24,7 +24,7 @@ class Pipeline(BasePipe):
             data = await pipe(data)
         return data
 
-    def __rshift__(self, other: BasePipe) -> Pipeline:
+    def __rshift__(self, other: Pipe) -> Pipeline:
         self.pipes.append(other)
         self._validate()
 

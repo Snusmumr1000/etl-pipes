@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
-from etl_pipes.pipes.pipeline.base_pipe import BasePipe
+from etl_pipes.pipes.pipeline.base_pipe import Pipe
 from tests.etl.odds.types import InnerOdds
 
 
 @dataclass
-class ToAmericanPipe(BasePipe):
+class ToAmericanPipe(Pipe):
     async def __call__(self, odds: InnerOdds) -> InnerOdds:
         return self.convert_to_american(odds)
 

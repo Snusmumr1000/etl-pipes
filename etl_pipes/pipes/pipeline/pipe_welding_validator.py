@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from etl_pipes.pipes.pipeline.base_pipe import BasePipe
+from etl_pipes.pipes.pipeline.base_pipe import Pipe
 from etl_pipes.pipes.pipeline.exceptions import (
     ElementIsNotPipeError,
     NoPipesInPipelineError,
@@ -11,19 +11,19 @@ from etl_pipes.pipes.pipeline.exceptions import (
 
 @dataclass
 class PipeWeldingValidator:
-    def validate(self, pipes: list[BasePipe]) -> None:
+    def validate(self, pipes: list[Pipe]) -> None:
         if not pipes:
             raise NoPipesInPipelineError()
         if len(pipes) == 1:
             raise OnlyOnePipeInPipelineError()
 
         for pipe in pipes:
-            if not isinstance(pipe, BasePipe):
+            if not isinstance(pipe, Pipe):
                 raise ElementIsNotPipeError(pipe)
 
         self._validate_pipe_typing(pipes)
 
-    def _validate_pipe_typing(self, pipes: list[BasePipe]) -> None:
+    def _validate_pipe_typing(self, pipes: list[Pipe]) -> None:
         for i in range(len(pipes) - 1):
             next_pipe = pipes[i + 1]
             next_pipe_types = {**next_pipe.__call__.__annotations__}

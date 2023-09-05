@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from etl_pipes.pipes.pipeline.base_pipe import BasePipe
+from etl_pipes.pipes.pipeline.base_pipe import Pipe
 from etl_pipes.pipes.pipeline.exceptions import PipelineTypeError
 from etl_pipes.pipes.pipeline.parallel import Parallel
 from etl_pipes.pipes.pipeline.pipeline import Pipeline
@@ -73,7 +73,7 @@ async def test_cant_connect_unmatching_pipes(
 
 @pytest.mark.asyncio
 async def test_parallel_log_to_console_and_log_to_file() -> None:
-    class LogToConsolePipe(BasePipe):
+    class LogToConsolePipe(Pipe):
         async def __call__(self, data: str) -> str:
             await asyncio.sleep(0.5)
             print(data)
@@ -83,7 +83,7 @@ async def test_parallel_log_to_console_and_log_to_file() -> None:
     if test_file.exists():
         test_file.unlink()
 
-    class LogToFilePipe(BasePipe):
+    class LogToFilePipe(Pipe):
         async def __call__(self, data: str) -> str:
             with test_file.open("a") as f:
                 f.write(data)
@@ -114,3 +114,23 @@ async def test_parallel_log_to_console_and_log_to_file() -> None:
 
     assert test_file.exists()
     assert test_file.read_text() == "test"
+
+
+@pytest.mark.asyncio
+async def test_if_as_base_pipe_works() -> None:
+    @Pipe.as_pipe
+    def sum_(a: int, b: int) -> int:
+        return a + b
+
+    @Pipe.as_pipe
+    def pow_(a: int) -> int:
+        r = 1
+        for _ in range(a):
+            r *= a
+        return r
+
+    pipeline = Pipeline([sum_, pow_])
+
+    result = await pipeline(2, 2)
+
+    assert result == (2 + 2) ** (2 + 2)

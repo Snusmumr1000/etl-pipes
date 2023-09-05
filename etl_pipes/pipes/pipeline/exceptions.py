@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from etl_pipes.common.utils.type_hints import is_tuple_type_hint
-from etl_pipes.pipes.pipeline.base_pipe import BasePipe
+from etl_pipes.pipes.pipeline.base_pipe import Pipe
 
 
 class PipelineError(Exception):
@@ -25,7 +25,7 @@ class ElementIsNotPipeError(PipelineError):
 
 
 class PipelineTypeError(PipelineError):
-    def __init__(self, current_pipe: BasePipe, next_pipe: BasePipe) -> None:
+    def __init__(self, current_pipe: Pipe, next_pipe: Pipe) -> None:
         self.current_pipe = current_pipe
         self.next_pipe = next_pipe
         super().__init__(self._generate_message())
@@ -49,7 +49,7 @@ class PipelineTypeError(PipelineError):
     ) -> str:
         args_formatted = (
             "(\n\t\t"
-            + ", \n".join(
+            + ", \n\t\t".join(
                 [f"{value}" for key, value in annotations_.items() if key != "return"]
             )
             + "\n)"
