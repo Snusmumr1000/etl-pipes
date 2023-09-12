@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from etl_pipes.pipes.pipeline.base_pipe import Pipe
+from etl_pipes.pipes.base_pipe import Pipe
 
 
 @dataclass

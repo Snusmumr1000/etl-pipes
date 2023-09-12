@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from etl_pipes.common.utils.type_hints import is_tuple_type_hint
-from etl_pipes.pipes.pipeline.base_pipe import Pipe
+from etl_pipes.pipes.base_pipe import Pipe
 
 
 class PipelineError(Exception):

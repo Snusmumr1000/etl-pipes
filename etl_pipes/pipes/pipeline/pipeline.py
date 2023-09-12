@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from etl_pipes.pipes.pipeline.base_pipe import Pipe
+from etl_pipes.pipes.base_pipe import Pipe
 from etl_pipes.pipes.pipeline.pipe_welding_validator import PipeWeldingValidator
 
 

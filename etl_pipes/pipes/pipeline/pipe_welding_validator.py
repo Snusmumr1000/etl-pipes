@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from etl_pipes.pipes.pipeline.base_pipe import Pipe
+from etl_pipes.pipes.base_pipe import Pipe
 from etl_pipes.pipes.pipeline.exceptions import (
     ElementIsNotPipeError,
     NoPipesInPipelineError,

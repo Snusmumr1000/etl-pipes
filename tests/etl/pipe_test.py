@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from etl_pipes.pipes.pipeline.base_pipe import Pipe
+from etl_pipes.pipes.base_pipe import Pipe
+from etl_pipes.pipes.map_reduce import MapReduce
+from etl_pipes.pipes.parallel import Parallel
 from etl_pipes.pipes.pipeline.exceptions import PipelineTypeError
-from etl_pipes.pipes.pipeline.map_reduce import MapReduce
-from etl_pipes.pipes.pipeline.parallel import Parallel
 from etl_pipes.pipes.pipeline.pipeline import Pipeline
 from tests.etl.odds.convert_to_american_pipe import ToAmericanPipe
 from tests.etl.odds.transform_pipe import OuterToInnerPipe
