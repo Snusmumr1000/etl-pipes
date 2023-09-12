@@ -2,11 +2,12 @@ import asyncio
 from dataclasses import dataclass
 from typing import Any
 
-from etl_pipes.pipes.pipeline.pipeline import Pipeline
+from etl_pipes.pipes.pipeline.base_pipe import Pipe
 
 
 @dataclass
-class Parallel(Pipeline):
+class Parallel(Pipe):
+    pipes: list[Pipe]
     broadcast: bool = False
 
     async def __call__(self, *args: Any, **kwargs: Any) -> tuple[Any, ...]:

@@ -1,13 +1,12 @@
-import asyncio
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from etl_pipes.pipes.pipeline.pipeline import Pipeline
+from etl_pipes.pipes.pipeline.base_pipe import Pipe
 
 
 @dataclass
-class MapReduce(Pipeline):
+class MapReduce(Pipe):
     async def __call__(self, *args: Any, **kwargs: Any) -> Any:
         chunks = await self.split(*args, **kwargs)
         mapped_chunks = await self.map(chunks)
@@ -18,15 +17,11 @@ class MapReduce(Pipeline):
         return [*args]
 
     async def map(self, chunks: Sequence[Any]) -> Sequence[Any]:
-        tasks = []
-
-        async def log_chunk(idx: int, c_: Any) -> Any:
+        def log_chunk(idx: int, c_: Any) -> Any:
             print(f"chunk {idx}: {c_}")
             return c_
 
-        for i, chunk in enumerate(chunks):
-            tasks.append(asyncio.create_task(log_chunk(i, chunk)))
-        results: list[Any] = await asyncio.gather(*tasks)
+        results = [log_chunk(i, chunk) for i, chunk in enumerate(chunks)]
         return results
 
     async def reduce(self, mapped_chunks: Sequence[Any]) -> Any:
