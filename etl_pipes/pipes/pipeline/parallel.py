@@ -1,15 +1,13 @@
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
-from etl_pipes.pipes.pipeline.pipe_welding_validator import PipeWeldingValidator
 from etl_pipes.pipes.pipeline.pipeline import Pipeline
 
 
 @dataclass
 class Parallel(Pipeline):
     broadcast: bool = False
-    validator: PipeWeldingValidator = field(default_factory=PipeWeldingValidator)
 
     async def __call__(self, *args: Any, **kwargs: Any) -> tuple[Any, ...]:
         tasks = []

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-while getopts "ctr" opt; do
+while getopts "ctra" opt; do
   case $opt in
     c)
       ./lint
@@ -10,6 +10,9 @@ while getopts "ctr" opt; do
       ;;
     r)
       python main.py
+      ;;
+    a)
+      pre-commit run --all-files
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
