@@ -60,3 +60,5 @@ disallow_untyped_defs = true
 # init_typed = true
 # warn_required_dynamic_aliases = true
 
+[tool.ruff.pylint]
+max-returns = 10
