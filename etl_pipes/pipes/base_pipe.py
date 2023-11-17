@@ -40,13 +40,6 @@ class Pipe:
 
         self.f = func
 
-    @staticmethod
-    def as_pipe(func: AnyFunc) -> Pipe:
-        pipe = Pipe()
-        pipe.func = func
-
-        return pipe
-
     def get_callable(self) -> AnyFunc:
         return self.__original_func or self.__call__
 
@@ -59,3 +52,10 @@ class Pipe:
         dc = copy.deepcopy(self)
         dc.is_void = True
         return dc
+
+
+def as_pipe(func: AnyFunc) -> Pipe:
+    pipe = Pipe()
+    pipe.func = func
+
+    return pipe

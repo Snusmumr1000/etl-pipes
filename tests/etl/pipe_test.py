@@ -1,6 +1,6 @@
 import pytest
 
-from etl_pipes.pipes.base_pipe import Pipe
+from etl_pipes.pipes.base_pipe import as_pipe
 from etl_pipes.pipes.pipeline.pipeline import Pipeline
 from tests.etl.odds.convert_to_american_pipe import ToAmericanPipe
 from tests.etl.odds.transform_pipe import OuterToInnerPipe
@@ -34,11 +34,11 @@ async def test_simple_two_step_transformation(
 
 @pytest.mark.asyncio
 async def test_if_as_base_pipe_works() -> None:
-    @Pipe.as_pipe
+    @as_pipe
     def sum_(a: int, b: int) -> int:
         return a + b
 
-    @Pipe.as_pipe
+    @as_pipe
     def pow_(a: int) -> int:
         r = 1
         for _ in range(a):
