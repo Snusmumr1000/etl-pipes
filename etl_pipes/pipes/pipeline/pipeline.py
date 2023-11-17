@@ -19,9 +19,22 @@ class Pipeline(Pipe):
         self._validate()
 
         first_pipe, *rest_of_pipes = self.pipes
+
         data = await first_pipe(*args, **kwargs)
+        prev_pipe = first_pipe
+
         for pipe in rest_of_pipes:
+            if prev_pipe.is_void:
+                data = await pipe()
+                continue
+
+            # think about library type for this
+            if type(data) is tuple:
+                data = await pipe(*data)
+                continue
+
             data = await pipe(data)
+            prev_pipe = pipe
         return data
 
     def __rshift__(self, other: Pipe) -> Pipeline:

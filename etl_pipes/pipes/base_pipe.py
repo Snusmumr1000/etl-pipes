@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import inspect
 from dataclasses import dataclass, field
 from typing import Any
@@ -9,6 +10,7 @@ from etl_pipes.domain.types import AnyFunc
 
 @dataclass
 class Pipe:
+    is_void: bool = field(init=False, default=False)
     f: AnyFunc | None = field(init=False, default=None)
 
     __original_func: AnyFunc | None = field(init=False, default=None)
@@ -52,3 +54,8 @@ class Pipe:
         if self.__original_func is None:
             return self.__class__.__name__
         return self.__original_func.__name__
+
+    def void(self) -> Pipe:
+        dc = copy.deepcopy(self)
+        dc.is_void = True
+        return dc

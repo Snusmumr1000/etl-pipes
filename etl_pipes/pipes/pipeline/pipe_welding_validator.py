@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from types import UnionType
 from typing import Any, Union, get_args, get_origin
 
+from etl_pipes.domain import types
 from etl_pipes.pipes.base_pipe import Pipe
 from etl_pipes.pipes.pipeline.exceptions import (
     ElementIsNotPipeError,
@@ -17,6 +18,15 @@ def is_compatible_type(value_type: type, signature_type: type) -> bool:
 
     # If the signature allows Any type, then any value is acceptable
     if signature_type is Any:
+        return True
+
+    # If the signature is a P.args, P.kwargs, then any value is acceptable
+    if signature_type == tuple[types.P.args, types.P.kwargs]:
+        return True
+
+    # TODO: remove and fix Parallel class
+    #       to change the signature of the call method when initialized
+    if value_type == tuple[Any, ...]:
         return True
 
     # Check if the value_type is compatible with any of the Union's elements
@@ -69,6 +79,9 @@ class PipeWeldingValidator:
     def _validate_pipe_typing(self, pipes: list[Pipe]) -> None:
         for i in range(len(pipes) - 1):
             current_pipe = pipes[i]
+            if current_pipe.is_void:
+                continue
+
             next_pipe = pipes[i + 1]
 
             current_pipe_call = current_pipe.get_callable()
