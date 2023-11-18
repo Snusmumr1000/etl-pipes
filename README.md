@@ -4,6 +4,27 @@
 
 Pypelines is a Python library for creating flow-based programming pipelines.
 
+## Primitives
+
+### Implemented
+
+- Pipeline
+  - used to combine pipes into a single sequential pipeline, used to implement "&&" operator
+- Parallel
+  - used to combine pipes into a single parallel pipeline
+- Maybe
+  - used to implement a pattern Chain of Responsibility and "||" operator
+- MapReduce
+  - used to implement MapReduce pattern (chunking, mapping chunks, reducing to a single result) 
+
+### Planned
+
+- Void
+  - used to implement ";" operator
+- Stream
+  - used to implement Observable + Observer pattern
+  - can be implemented with asyncio, threading, multiprocessing
+
 ## Examples
 
 ### Basic usage
@@ -206,6 +227,7 @@ async def read_todo(
 - [ ] Add support for Pipeline State
 - [ ] Add support for Pipeline Context
 - [ ] Write a mypy plugin to support type checking for pipes instead of doing it in a runtime
+- [ ] Add PassedArgs class
 
 ### State
 State is a way to pass data between pipes.
@@ -220,8 +242,16 @@ Literally read-only State.
 
 
 ### Type checking
-Currently, mypy does not support type checking for pipes, and `Pipeline` or `Parallel` pipes' return type is `Any`. It causes some problems.
+Currently, mypy does not support type checking for pipes, and `Pipeline` or `Parallel` pipes' return type is `Any`.
 
+It causes some problems, when narrowing from `Any` to some type (look at web test case).
+
+
+### PassedArgs
+
+`PassedArgs` is a class that contains all positional and keyword arguments that will be passed to the next pipe.
+
+Now we use tuple for it, and we can only pass positional arguments. It is not convenient to use it in some cases. 
 
 ## Non-critical features
 
@@ -230,3 +260,5 @@ Currently, mypy does not support type checking for pipes, and `Pipeline` or `Par
 - [ ] Think about getting rid of square brackets in `Parallel` and `Pipeline` and rename them to `par` and `seq` respectively, overall interface improvement
 - [ ] Fix broken endpoints in web app test case
 - [ ] Setup PyPi publishing
+- [ ] Create `Void` (or `_`) pipe instead of using `.void()` method
+- [ ] Create more test cases for `MapReduce` pipe
