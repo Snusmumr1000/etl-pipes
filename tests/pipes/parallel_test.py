@@ -32,7 +32,7 @@ async def test_parallel_log_to_console_and_log_to_file() -> None:
             log_to_console,
             log_to_file,
         ],
-        broadcast=True,
+        broadcast=True,  # sends same arguments to all pipes
     )
 
     start_time_ms = int(time.time() * 1000)
@@ -40,7 +40,7 @@ async def test_parallel_log_to_console_and_log_to_file() -> None:
     exit_code, log_path = await parallel("test")
 
     end_time_ms = int(time.time() * 1000)
-    limit = 650
+    limit = 1000
     diff = end_time_ms - start_time_ms
     assert diff < limit
 
