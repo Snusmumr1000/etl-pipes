@@ -8,31 +8,38 @@ Pypelines is a Python library for creating flow-based programming pipelines.
 
 ### Basic usage
 
-A trivial example of a pipeline with two simple pipes.
+A trivial example of a pipeline with two simple pipes. 
+Here two operations of summing and raising to a power are combined into one pipeline. 
+The result of the first pipe is passed to the second pipe as an argument.
 
 ```python
-from etl_pipes.pipes.pipeline.pipeline import Pipeline
+import pytest
+
 from etl_pipes.pipes.base_pipe import as_pipe
+from etl_pipes.pipes.pipeline.pipeline import Pipeline
 
-@as_pipe
-def sum_(a: int, b: int) -> int:
-    return a + b
+@pytest.mark.asyncio
+async def test_if_as_base_pipe_works() -> None:
+    @as_pipe
+    def sum_(a: int, b: int) -> int:
+        return a + b
 
-@as_pipe
-def pow_(a: int) -> int:
-    r = 1
-    for _ in range(a):
-        r *= a
-    return r
+    @as_pipe
+    def pow_(a: int) -> int:
+        r = 1
+        for _ in range(a):
+            r *= a
+        return r
 
-pipeline = Pipeline([sum_, pow_])
+    pipeline = Pipeline([sum_, pow_])
 
-result = await pipeline(2, 2)
+    result = await pipeline(2, 2)
 
-assert result == (2 + 2) ** (2 + 2)
+    assert result == (2 + 2) ** (2 + 2)
 ```
 
-An example of a parallel execution of pipes. Currently, works only with asyncio. ProcessPool and ThreadPool are to be added. Probably anyio.
+An example of a parallel execution of pipes. 
+Currently, it works only with asyncio.
 
 ```python
 import asyncio
@@ -87,3 +94,139 @@ async def test_parallel_log_to_console_and_log_to_file() -> None:
     assert log_path.read_text() == "test"
 ```
 
+`Maybe` pipe example. 
+It is an implementation of pattern Chain of Responsibility. 
+
+If the current pipe fails with `Nothing` exception,
+the next pipe is executed with the same arguments.
+
+If no pipe can handle the exception, `UnhandledNothingError` is raised.
+
+```python
+import pytest
+
+from etl_pipes.pipes.base_pipe import as_pipe
+from etl_pipes.pipes.maybe import Maybe, Nothing, UnhandledNothingError
+
+
+@as_pipe
+async def successful_pipe() -> str:
+    return "Success"
+
+
+@as_pipe
+async def failing_pipe() -> str:
+    if True:
+        raise Nothing()
+    return "Failure"
+
+
+
+@pytest.mark.asyncio
+async def test_maybe_with_fallback_pipe() -> None:
+    maybe_pipe = Maybe(failing_pipe).otherwise(successful_pipe)
+    result = await maybe_pipe()
+    assert result == "Success"
+
+
+@pytest.mark.asyncio
+async def test_maybe_with_all_failing_pipes() -> None:
+    maybe_pipe = Maybe(failing_pipe).otherwise(failing_pipe)
+    with pytest.raises(UnhandledNothingError):
+        await maybe_pipe()
+```
+
+### Advanced usage
+
+More sophisticated example from sample ToDo web application.
+
+We want to get a ToDo item from server.
+- we check if we have access to this ToDo item.
+- we have access -> we try to get it from cache.
+- it is not in cache -> we get it from database and cache it.
+
+```python
+from fastapi import Depends, FastAPI
+from sqlalchemy.orm import Session
+
+from etl_pipes.pipes.maybe import Maybe
+from etl_pipes.pipes.parallel import Parallel
+from etl_pipes.pipes.pipeline.pipeline import Pipeline
+from tests.web_api.auth import AuthToken, CheckAccessForTodo, Ops
+from tests.web_api.cache.todo_cache import CacheTodoDTO, GetTodoAndItemsFromCache
+from tests.web_api.db import models
+from tests.web_api.db.connection import get_db
+from tests.web_api.db.read import ReadManyFromDb, ReadOneFromDb
+from tests.web_api.domain_types import TodoId
+from tests.web_api.dto import (
+    GetTodoDto,
+)
+
+from tests.web_api.mapping.todo import MapDbTodoAndDbItemsToDto
+
+app = FastAPI()
+
+@app.get("/todos/{todo_id}")
+async def read_todo(
+    token: AuthToken, todo_id: TodoId, db: Session = Depends(get_db)
+) -> GetTodoDto:
+    pipeline = Pipeline(
+        [
+            CheckAccessForTodo(token, todo_id, ops=[Ops.Read]).void(),  # changes return type to None
+            Maybe(
+                GetTodoAndItemsFromCache(todo_id=todo_id),
+            ).otherwise(
+                Pipeline(
+                    [
+                        Parallel(
+                            [
+                                ReadOneFromDb(
+                                    db=db, model=models.Todo, filter={"id": todo_id}
+                                ),
+                                ReadManyFromDb(
+                                    filter={"todo_id": todo_id},
+                                    model=models.Item,
+                                    db=db,
+                                ),
+                            ]
+                        ),
+                        MapDbTodoAndDbItemsToDto(),
+                        CacheTodoDTO(),
+                    ]
+                )
+            ),
+        ]
+    )
+    return await pipeline()  # type: ignore[no-any-return]
+
+```
+
+## Critical features
+
+- [ ] Add support for Pipeline State
+- [ ] Add support for Pipeline Context
+- [ ] Write a mypy plugin to support type checking for pipes instead of doing it in a runtime
+
+### State
+State is a way to pass data between pipes.
+
+It should be a more convenient way to pass data between pipes than passing an argument each time. Something like mutable dependency injection.
+
+
+### Context
+Context is a way to pass data between pipes.
+
+Literally read-only State.
+
+
+### Type checking
+Currently, mypy does not support type checking for pipes, and `Pipeline` or `Parallel` pipes' return type is `Any`. It causes some problems.
+
+
+## Non-critical features
+
+- [ ] Add support for `ProcessPool` and `ThreadPool` for `Parallel` pipe
+- [ ] Implement `Parallel` pipe as ABC or Protocol and make `AsyncioParallel` a subclass of it
+- [ ] Think about getting rid of square brackets in `Parallel` and `Pipeline` and rename them to `par` and `seq` respectively, overall interface improvement
+- [ ] Fix broken endpoints in web app test case
+- [ ] Setup PyPi publishing
