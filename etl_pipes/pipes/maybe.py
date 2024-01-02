@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from etl_pipes.domain import types
 from etl_pipes.pipes.base_pipe import Pipe
 
 
@@ -31,10 +30,10 @@ class Maybe(Pipe):
     def otherwise(self, pipe: Pipe) -> Maybe:
         return self.__or(pipe)
 
-    async def __call__(self, *args: types.P.args, **kwargs: types.P.kwargs) -> Any:
+    async def __call__(self, *args: Any) -> Any:
         for pipe in self.responsible_pipes:
             try:
-                return await pipe(*args, **kwargs)
+                return await pipe(*args)
             except Nothing:
                 pass
         raise UnhandledNothingError("No pipe was able to handle the input")

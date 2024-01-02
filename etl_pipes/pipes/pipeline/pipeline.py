@@ -15,12 +15,12 @@ class Pipeline(Pipe):
     def __post_init__(self) -> None:
         self._validate()
 
-    async def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    async def __call__(self, *args: Any) -> Any:
         self._validate()
 
         first_pipe, *rest_of_pipes = self.pipes
 
-        data = await first_pipe(*args, **kwargs)
+        data = await first_pipe(*args)
         prev_pipe = first_pipe
 
         for pipe in rest_of_pipes:

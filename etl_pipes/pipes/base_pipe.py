@@ -15,12 +15,12 @@ class Pipe:
 
     __original_func: AnyFunc | None = field(init=False, default=None)
 
-    async def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    async def __call__(self, *args: Any) -> Any:
         if self.f is None:
             raise NotImplementedError(
                 "Pipe must be initialized with a coroutine function"
             )
-        return await self.f(*args, **kwargs)
+        return await self.f(*args)
 
     @property
     def func(self) -> AnyFunc | None:

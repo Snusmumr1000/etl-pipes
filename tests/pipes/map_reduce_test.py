@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
@@ -11,10 +11,10 @@ from etl_pipes.pipes.map_reduce import MapReduce
 async def test_if_map_reduce_pipe_works() -> None:
     @dataclass
     class SomeMapReduce(MapReduce):
-        async def split(self, *args: Any) -> Sequence[Any]:
-            return [*args]
+        async def split(self, iterable: Iterable[Any]) -> Iterable[Any]:
+            return [*iterable]
 
-        async def map(self, chunks: Sequence[Any]) -> Sequence[Any]:
+        async def map(self, chunks: Iterable[Any]) -> Iterable[Any]:
             def log_chunk(idx: int, c_: Any) -> Any:
                 print(f"chunk {idx}: {c_}")
                 return c_
@@ -22,7 +22,7 @@ async def test_if_map_reduce_pipe_works() -> None:
             results = [log_chunk(i, chunk) for i, chunk in enumerate(chunks)]
             return results
 
-        async def reduce(self, mapped_chunks: Sequence[Any]) -> Any:
+        async def reduce(self, mapped_chunks: Iterable[Any]) -> Any:
             return tuple(mapped_chunks)
 
     @dataclass
@@ -33,6 +33,6 @@ async def test_if_map_reduce_pipe_works() -> None:
 
     map_reduce = SomeMapReduce()
     chunks = (1, "string", 2.0, 3, "another string", SomeObject())
-    result = await map_reduce(*chunks)
+    result = await map_reduce(chunks)
 
     assert result == (1, "string", 2.0, 3, "another string", SomeObject())
