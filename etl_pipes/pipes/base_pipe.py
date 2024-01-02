@@ -3,15 +3,24 @@ from __future__ import annotations
 import copy
 import inspect
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, assert_never
 
 from etl_pipes.domain.types import AnyFunc
+
+
+@dataclass
+class PipeOutput:
+    is_modified: bool = field(init=False, default=False)
+    pos: int | slice | tuple[int] = field(
+        init=False, default_factory=lambda: slice(None)
+    )
 
 
 @dataclass
 class Pipe:
     is_void: bool = field(init=False, default=False)
     f: AnyFunc | None = field(init=False, default=None)
+    out: PipeOutput = field(init=False, default_factory=PipeOutput)
 
     __original_func: AnyFunc | None = field(init=False, default=None)
 
@@ -48,10 +57,25 @@ class Pipe:
             return self.__class__.__name__
         return self.__original_func.__name__
 
+    def __getitem__(self, key: int | slice | None) -> Pipe:
+        match key:
+            case None:
+                return self.void()
+            case int() | slice():
+                dc = self.copy()
+                dc.out.is_modified = True
+                dc.out.pos = key
+                return dc
+            case _:
+                assert_never(key)
+
     def void(self) -> Pipe:
-        dc = copy.deepcopy(self)
+        dc = self.copy()
         dc.is_void = True
         return dc
+
+    def copy(self) -> Pipe:
+        return copy.deepcopy(self)
 
 
 def as_pipe(func: AnyFunc) -> Pipe:

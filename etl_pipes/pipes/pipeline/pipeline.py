@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, assert_never
 
 from etl_pipes.pipes.base_pipe import Pipe
 from etl_pipes.pipes.pipeline.pipe_welding_validator import PipeWeldingValidator
@@ -11,6 +11,7 @@ from etl_pipes.pipes.pipeline.pipe_welding_validator import PipeWeldingValidator
 class Pipeline(Pipe):
     pipes: list[Pipe] = field(default_factory=list)
     validator: PipeWeldingValidator = field(default_factory=PipeWeldingValidator)
+    ignore_validation: bool = field(default=False)
 
     def __post_init__(self) -> None:
         self._validate()
@@ -18,22 +19,30 @@ class Pipeline(Pipe):
     async def __call__(self, *args: Any) -> Any:
         self._validate()
 
-        first_pipe, *rest_of_pipes = self.pipes
+        data = args
+        prev_pipe = None
 
-        data = await first_pipe(*args)
-        prev_pipe = first_pipe
-
-        for pipe in rest_of_pipes:
-            if prev_pipe.is_void:
+        for pipe in self.pipes:
+            if prev_pipe and prev_pipe.is_void:
                 data = await pipe()
-                continue
-
-            # think about library type for this
-            if type(data) is tuple:
+            # think about library type for this,
+            # tuple seems to be a crucial part of the pipeline
+            elif type(data) is tuple:
                 data = await pipe(*data)
-                continue
+            else:
+                data = await pipe(data)
 
-            data = await pipe(data)
+            if pipe.out.is_modified:
+                match pipe.out.pos:
+                    case int():
+                        data = data[pipe.out.pos]
+                    case slice():
+                        data = tuple(data[pipe.out.pos])
+                    case tuple():
+                        data = tuple(data[i] for i in pipe.out.pos)
+                    case _:
+                        assert_never(pipe.out.pos)
+
             prev_pipe = pipe
         return data
 
@@ -44,4 +53,6 @@ class Pipeline(Pipe):
         return self
 
     def _validate(self) -> None:
+        if self.ignore_validation:
+            return
         self.validator.validate(self.pipes)
