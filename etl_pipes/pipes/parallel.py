@@ -1,5 +1,5 @@
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from etl_pipes.pipes.base_pipe import Pipe
@@ -8,17 +8,13 @@ from etl_pipes.pipes.base_pipe import Pipe
 @dataclass
 class Parallel(Pipe):
     pipes: list[Pipe]
-    broadcast: bool = field(default=False)
 
     async def __call__(self, *args: Any) -> tuple[Any, ...]:
         tasks = []
-        if self.broadcast:
-            tasks = self._create_tasks(*args)
-        elif not args:
+        if not args:
             tasks = self._create_tasks()
         else:
-            tuple_of_args = args[0]
-            for pipe, arg in zip(self.pipes, tuple_of_args):
+            for pipe, arg in zip(self.pipes, args):
                 tasks.append(self._create_task(pipe, arg))
         results = await asyncio.gather(*tasks)
         return tuple(results)
