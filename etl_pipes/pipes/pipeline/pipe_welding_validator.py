@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from types import UnionType
 from typing import Any, Union, get_args, get_origin
 
-from etl_pipes.domain import types
 from etl_pipes.pipes.base_pipe import Pipe
 from etl_pipes.pipes.pipeline.exceptions import (
     ElementIsNotPipeError,
@@ -18,10 +17,6 @@ def is_compatible_type(value_type: type, signature_type: type) -> bool:
 
     # If the signature allows Any type, then any value is acceptable
     if signature_type is Any:
-        return True
-
-    # If the signature is a P.args, P.kwargs, then any value is acceptable
-    if signature_type == tuple[types.P.args, types.P.kwargs]:
         return True
 
     # TODO: remove and fix Parallel class
