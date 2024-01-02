@@ -1,6 +1,6 @@
 import pytest
 
-from etl_pipes.pipes.base_pipe import Pipe
+from etl_pipes.pipes.base_pipe import Pipe, as_pipe
 from etl_pipes.pipes.pipeline.exceptions import (
     NoPipesInPipelineError,
     OnlyOnePipeInPipelineError,
@@ -55,3 +55,36 @@ async def test_pipeline_errors(
 
     with pytest.raises(expected_exception):
         Pipeline(pipes)
+
+
+@pytest.mark.asyncio
+async def test_pipeline_void() -> None:
+    @as_pipe
+    def exchange_token(token: str) -> str:
+        return token + " exchanged"
+
+    @as_pipe
+    def check_auth(token: str) -> None:
+        required_token = "token exchanged"
+        if token != required_token:
+            raise Exception("Not authorized")
+
+    @as_pipe
+    def get_item() -> dict[str, str]:
+        return {"item": "item"}
+
+    pipeline = Pipeline(
+        [
+            exchange_token,
+            check_auth.void(),
+            get_item,
+        ]
+    )
+
+    auth_token = "token"
+    item = await pipeline(auth_token)
+    assert item == {"item": "item"}
+
+    wrong_token = "wrong token"
+    with pytest.raises(Exception):
+        await pipeline(wrong_token)
