@@ -11,7 +11,7 @@ from etl_pipes.domain.types import AnyFunc
 @dataclass
 class PipeOutput:
     is_modified: bool = field(init=False, default=False)
-    pos: int | slice | tuple[int] = field(
+    pos: int | slice | tuple[int, ...] = field(
         init=False, default_factory=lambda: slice(None)
     )
 
@@ -57,11 +57,11 @@ class Pipe:
             return self.__class__.__name__
         return self.__original_func.__name__
 
-    def __getitem__(self, key: int | slice | None) -> Pipe:
+    def __getitem__(self, key: int | slice | tuple[int, ...] | None) -> Pipe:
         match key:
             case None:
                 return self.void()
-            case int() | slice():
+            case int() | slice() | tuple():
                 dc = self.copy()
                 dc.out.is_modified = True
                 dc.out.pos = key

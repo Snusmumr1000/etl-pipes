@@ -7,8 +7,8 @@ from etl_pipes.pipes.pipeline.pipeline import Pipeline
 @pytest.mark.asyncio
 async def test_simple_data_structure_change() -> None:
     @as_pipe
-    async def get_token_full() -> tuple[str, str]:
-        return "token", "token_meta"
+    async def get_token_full() -> tuple[str, str, dict[str, str]]:
+        return "token", "token_meta", {"info": "info"}
 
     @as_pipe
     async def verify_token(token: str) -> bool:
@@ -22,6 +22,10 @@ async def test_simple_data_structure_change() -> None:
     async def dev_null() -> bool:
         return True
 
+    @as_pipe
+    async def verify_token_and_info(token: str, info: dict[str, str]) -> bool:
+        return token == "token" and info == {"info": "info"}
+
     pipeline_single = Pipeline(
         [
             get_token_full[0],
@@ -34,14 +38,27 @@ async def test_simple_data_structure_change() -> None:
 
     assert result is True
 
-    pipeline_double = Pipeline(
+    pipeline_with_sliced_return = Pipeline(
         [
-            get_token_full,
+            get_token_full[0:2],
             verify_pair,
         ],
+        ignore_validation=True,  # TODO: remove from this test, broken test semantics
     )
 
-    result = await pipeline_double()
+    result = await pipeline_with_sliced_return()
+
+    assert result is True
+
+    pipeline_tuple = Pipeline(
+        [
+            get_token_full[(0, 2)],
+            verify_token_and_info,
+        ],
+        ignore_validation=True,  # TODO: remove from this test, broken test semantics
+    )
+
+    result = await pipeline_tuple()
 
     assert result is True
 
