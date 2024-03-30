@@ -12,7 +12,7 @@ from etl_pipes.common.actor import Actor, ActorSystem, Message
 async def test_simple_actor() -> None:
     async def initialize_queue() -> asyncio.Queue[Message]:
         init_queue: asyncio.Queue[Message] = asyncio.Queue()
-        for msg in [Message(data="11,22,33"), Message(data="44,55,66")]:
+        for msg in [Message(data="11,22,3b3"), Message(data="44,55,66")]:
             init_queue.put_nowait(msg)
         return init_queue
 
@@ -20,7 +20,7 @@ async def test_simple_actor() -> None:
     class SplittingActor(Actor):
         name: str = "splitting_actor"
 
-        async def process_message(self, message_data: Any) -> None:
+        async def process_result(self, message_data: Any) -> None:
             for digits in message_data.split(","):
                 await self.save_result(digits)
 
@@ -28,21 +28,24 @@ async def test_simple_actor() -> None:
     class DigitActor(Actor):
         name: str = "digit_actor"
 
-        async def process_message(self, message_data: Any) -> None:
+        async def process_result(self, message_data: Any) -> None:
             data = message_data
-            if not all(char.isdigit() for char in data):
-                await self.save_exception(Exception(f"Non-digit character: {data}"))
             for char in data:
+                if not char.isdigit():
+                    await self.save_exception(
+                        Exception(f"Non-digit character {char} in {data}")
+                    )
+                    continue
                 await self.save_result(int(char))
 
     @dataclass
     class PrintActor(Actor):
         name: str = "print_actor"
 
-        async def process_message(self, message_data: Any) -> None:
+        async def process_result(self, message_data: Any) -> None:
             await self.save_result(str(message_data))
 
-    splitting_actor = SplittingActor(incoming_messages=await initialize_queue())
+    splitting_actor = SplittingActor(incoming_results=await initialize_queue())
     digit_actor = DigitActor()
     print_actor = PrintActor()
 
@@ -56,13 +59,26 @@ async def test_simple_actor() -> None:
 
     await actor_system.run()
 
-    results = set()
+    results = []
     async for result in actor_system.stream_actor_unpacked_results(print_actor):
-        results.add(result)
-    assert results == {"1", "1", "2", "2", "3", "3", "4", "4", "5", "5", "6", "6"}
+        results.append(result)
+    assert sorted(results) == [
+        "1",
+        "1",
+        "2",
+        "2",
+        "3",
+        "3",
+        "4",
+        "4",
+        "5",
+        "5",
+        "6",
+        "6",
+    ]
 
-    exceptions = set()
-    async for result in actor_system.stream_actor_unpacked_exceptions(print_actor):
-        exceptions.add(result)
+    exceptions = []
+    async for exception in actor_system.stream_actor_unpacked_exceptions(print_actor):
+        exceptions.append(exception)
 
-    assert exceptions == set()
+    assert [str(exc) for exc in exceptions] == ["Non-digit character b in 3b3"]

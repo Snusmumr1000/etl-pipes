@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable, Coroutine
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
@@ -21,12 +21,17 @@ class Message:
 ActorId = NewType("ActorId", str)
 
 
+class OutputType(Enum):
+    RESULT = "result"
+    EXCEPTION = "exception"
+
+
 @dataclass
 class Actor:
     name: str
     id: ActorId = field(default_factory=lambda: ActorId(str(uuid.uuid4())))
 
-    incoming_messages: asyncio.Queue[Message] = field(default_factory=asyncio.Queue)
+    incoming_results: asyncio.Queue[Message] = field(default_factory=asyncio.Queue)
     incoming_exceptions: asyncio.Queue[Message] = field(default_factory=asyncio.Queue)
     results_buffer: asyncio.Queue[Message] = field(default_factory=asyncio.Queue)
     results: asyncio.Queue[Message] = field(default_factory=asyncio.Queue)
@@ -39,30 +44,65 @@ class Actor:
     sending_actors: dict[ActorId, Actor] = field(default_factory=dict)
 
     async def process_messages(self) -> None:
+        await asyncio.gather(
+            self.process_results(),
+            self.process_exceptions(),
+        )
+
+    async def process_results(self) -> None:
         while True:
-            message = await self.incoming_messages.get()
-            await self.process_message(message.data)
+            message = await self.incoming_results.get()
+            await self.process_result(message.data)
 
-            while not self.results_buffer.empty():
-                response = await self.results_buffer.get()
-                if response is not None:
-                    if self.receiving_actors:
-                        for actor in self.receiving_actors.values():
-                            await actor.accept_result_message(response)
+            await self.pass_or_save_outputs()
+
+    async def process_exceptions(self) -> None:
+        while True:
+            message = await self.incoming_exceptions.get()
+            await self.process_exception(message.data)
+
+            await self.pass_or_save_outputs()
+
+    async def pass_or_save_outputs(self) -> None:
+        await asyncio.gather(
+            self.pass_or_save_output_type(OutputType.RESULT),
+            self.pass_or_save_output_type(OutputType.EXCEPTION),
+        )
+
+    async def pass_or_save_output_type(self, output_type: OutputType) -> None:
+        match output_type:
+            case OutputType.RESULT:
+                buffer = self.results_buffer
+                saved_output = self.results
+
+                def accept_output(
+                    actor_: Actor,
+                ) -> Callable[[Message], Coroutine[None, None, None]]:
+                    return actor_.accept_result_message
+
+            case OutputType.EXCEPTION:
+                buffer = self.exceptions_buffer
+                saved_output = self.exceptions
+
+                def accept_output(
+                    actor_: Actor,
+                ) -> Callable[[Message], Coroutine[None, None, None]]:
+                    return actor_.accept_exception_message
+
+            case _:
+                raise ValueError("Invalid output type")
+
+        while not buffer.empty():
+            output = await buffer.get()
+            if output is not None:
+                if self.receiving_actors:
+                    for actor in self.receiving_actors.values():
+                        await accept_output(actor)(output)
                         continue
-                    await self.results.put(response)
-
-            while not self.exceptions_buffer.empty():
-                exception = await self.exceptions_buffer.get()
-                if exception is not None:
-                    if self.receiving_actors:
-                        for actor in self.receiving_actors.values():
-                            await actor.accept_exception_message(exception)
-                            continue
-                    await self.exceptions.put(exception)
+                await saved_output.put(output)
 
     async def accept_result_message(self, message: Message) -> None:
-        await self.incoming_messages.put(message)
+        await self.incoming_results.put(message)
 
     async def accept_exception_message(self, exception_message: Message) -> None:
         await self.incoming_exceptions.put(exception_message)
@@ -73,8 +113,11 @@ class Actor:
     async def save_exception(self, exception: Exception) -> None:
         await self.exceptions_buffer.put(Message(data=exception))
 
-    async def process_message(self, message: Message) -> None:
+    async def process_result(self, message: Any) -> None:
         raise NotImplementedError("Actor must implement process_message method")
+
+    async def process_exception(self, exception: Exception) -> None:
+        await self.save_exception(exception)
 
     def __rshift__(self, other: Actor) -> Actor:
         self.receiving_actors[other.id] = other
@@ -95,11 +138,6 @@ class Actor:
         return hash(self.id)
 
 
-class OutputType(Enum):
-    RESULT = "result"
-    EXCEPTION = "exception"
-
-
 @dataclass
 class ActorSystem:
     actors: list[Actor]
@@ -116,6 +154,7 @@ class ActorSystem:
         self.actor_ids = {actor.id for actor in self.actors}
 
     async def run(self) -> None:
+        # TBD: trace id of messages
         # TBD: validation, so non-starting actors don't have any messages in inbox
         self.categorize_actors()
         non_starting_actor_ids = self.actor_ids - self.starting_actor_ids
