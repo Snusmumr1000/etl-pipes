@@ -49,27 +49,20 @@ async def test_simple_actor() -> None:
     actor_system = ActorSystem(
         actors=[splitting_actor, digit_actor, print_actor],
         no_action_timeout=timedelta(seconds=1),
+        no_outcome_timeout=timedelta(seconds=1),
     )
 
     splitting_actor >> digit_actor >> print_actor
 
     await actor_system.run()
 
-    results = await actor_system.get_actor_unpacked_results(print_actor)
-    assert results == [
-        "1",
-        "1",
-        "2",
-        "2",
-        "3",
-        "3",
-        "4",
-        "4",
-        "5",
-        "5",
-        "6",
-        "6",
-    ]
+    results = set()
+    async for result in actor_system.stream_actor_unpacked_results(print_actor):
+        results.add(result)
+    assert results == {"1", "1", "2", "2", "3", "3", "4", "4", "5", "5", "6", "6"}
 
-    exceptions = await actor_system.get_actor_unpacked_exceptions(print_actor)
-    assert exceptions == []
+    exceptions = set()
+    async for result in actor_system.stream_actor_unpacked_exceptions(print_actor):
+        exceptions.add(result)
+
+    assert exceptions == set()

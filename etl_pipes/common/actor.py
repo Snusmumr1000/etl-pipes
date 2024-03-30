@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from datetime import timedelta
+from enum import Enum
 from typing import Any, NewType
 
 logger = logging.getLogger(__name__)
@@ -93,10 +95,16 @@ class Actor:
         return hash(self.id)
 
 
+class OutputType(Enum):
+    RESULT = "result"
+    EXCEPTION = "exception"
+
+
 @dataclass
 class ActorSystem:
     actors: list[Actor]
     no_action_timeout: timedelta
+    no_outcome_timeout: timedelta = field(default_factory=lambda: timedelta(seconds=10))
 
     actors_dict: dict[ActorId, Actor] = field(default_factory=dict)
     actor_ids: set[ActorId] = field(default_factory=set)
@@ -108,6 +116,7 @@ class ActorSystem:
         self.actor_ids = {actor.id for actor in self.actors}
 
     async def run(self) -> None:
+        # TBD: validation, so non-starting actors don't have any messages in inbox
         self.categorize_actors()
         non_starting_actor_ids = self.actor_ids - self.starting_actor_ids
 
@@ -121,6 +130,7 @@ class ActorSystem:
             actor = self.actors_dict[actor_id]
             tasks[actor_id] = asyncio.create_task(actor.process_messages())
 
+        # TBD: system of ticks while processing messages
         await asyncio.wait(
             [*tasks.values()], timeout=self.no_action_timeout.total_seconds()
         )
@@ -135,21 +145,48 @@ class ActorSystem:
             if not actor.receiving_actors:
                 self.resulting_actor_ids.add(actor_id)
 
-    async def get_actor_unpacked_results(self, actor: Actor) -> list[Any]:
-        results_queue, _ = self.get_results()[actor.id]
-        results = []
-        while not results_queue.empty():
-            message = await results_queue.get()
-            results.append(message.data)
-        return results
+    async def stream_actor_unpacked_results(
+        self, actor: Actor, timeout: timedelta | None = None
+    ) -> AsyncGenerator[Any, None]:
+        async for message in self.stream_actor_output_with_timeout(
+            actor, OutputType.RESULT, timeout
+        ):
+            yield message.data
 
-    async def get_actor_unpacked_exceptions(self, actor: Actor) -> list[Exception]:
-        _, exceptions_queue = self.get_results()[actor.id]
-        exceptions = []
-        while not exceptions_queue.empty():
-            exception = await exceptions_queue.get()
-            exceptions.append(exception.data)
-        return exceptions
+    async def stream_actor_unpacked_exceptions(
+        self, actor: Actor, timeout: timedelta | None = None
+    ) -> AsyncGenerator[Exception, None]:
+        async for message in self.stream_actor_output_with_timeout(
+            actor, OutputType.EXCEPTION, timeout
+        ):
+            yield message.data
+
+    async def stream_actor_output_with_timeout(
+        self, actor: Actor, output_type: OutputType, timeout: timedelta | None = None
+    ) -> AsyncGenerator[Message, None]:
+        if timeout is None:
+            timeout = self.no_outcome_timeout
+        async for message in self.stream_actor_output(actor, output_type, timeout):
+            yield message
+
+    async def stream_actor_output(
+        self, actor: Actor, output_type: OutputType, timeout: timedelta
+    ) -> AsyncGenerator[Message, None]:
+        queue: asyncio.Queue[Message] = asyncio.Queue()
+        match output_type:
+            case OutputType.RESULT:
+                queue = self.get_results()[actor.id][0]
+            case OutputType.EXCEPTION:
+                queue = self.get_results()[actor.id][1]
+
+        while True:
+            try:
+                message = await asyncio.wait_for(
+                    queue.get(), timeout=timeout.total_seconds()
+                )
+                yield message
+            except TimeoutError:
+                break
 
     def get_results(
         self,
