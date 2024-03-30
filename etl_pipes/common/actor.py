@@ -156,6 +156,7 @@ class ActorSystem:
     async def run(self) -> None:
         # TBD: trace id of messages
         # TBD: validation, so non-starting actors don't have any messages in inbox
+        # TBD: add generics, so we can assign message and exception types
         self.categorize_actors()
         non_starting_actor_ids = self.actor_ids - self.starting_actor_ids
 
