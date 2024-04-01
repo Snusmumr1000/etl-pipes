@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "etl-pipes"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["Tikhon Zaikin <th@thevhs.club>"]
 readme = "README.md"
@@ -8,11 +8,6 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 pip = "^23.2"
-pytest-asyncio = "^0.21.1"
-fastapi = "^0.103.1"
-unicorn = {extras = ["standard"], version = "^2.0.1.post1"}
-sqlalchemy = { version = "^2.0.21", extras = ["mypy"] }
-uvicorn = "^0.23.2"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.0.277"
@@ -21,6 +16,11 @@ mypy = "^1.4.1"
 pytest = "^7.4.0"
 pre-commit = "^3.4.0"
 coverage = "^7.3.1"
+pytest-asyncio = "^0.21.1"
+fastapi = "^0.103.1"
+unicorn = {extras = ["standard"], version = "^2.0.1.post1"}
+sqlalchemy = { version = "^2.0.21", extras = ["mypy"] }
+uvicorn = "^0.23.2"
 
 [build-system]
 requires = ["poetry-core"]
