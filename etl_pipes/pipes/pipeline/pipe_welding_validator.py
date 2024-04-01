@@ -1,7 +1,7 @@
 import inspect
 from dataclasses import dataclass
 from types import UnionType
-from typing import Any, Union, get_args, get_origin
+from typing import Any, Union, cast, get_args, get_origin
 
 from etl_pipes.pipes.base_pipe import Pipe
 from etl_pipes.pipes.pipeline.exceptions import (
@@ -12,7 +12,13 @@ from etl_pipes.pipes.pipeline.exceptions import (
 )
 
 
-def is_compatible_type(value_type: type, signature_type: type) -> bool:
+def is_compatible_type(value_type: type | str, signature_type: type | str) -> bool:
+    if type(signature_type) is str or type(value_type) is str:
+        return signature_type == value_type
+
+    value_type = cast(type, value_type)
+    signature_type = cast(type, signature_type)
+
     union_origins = {Union, UnionType}  # UnionType is for Python 3.10+
 
     # If the signature allows Any type, then any value is acceptable
