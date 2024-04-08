@@ -31,7 +31,6 @@ async def test_simple_data_structure_change() -> None:
             get_token_full[0],
             verify_token,
         ],
-        ignore_validation=True,  # TODO: remove from this test, broken test semantics
     )
 
     result = await pipeline_single()
@@ -43,7 +42,6 @@ async def test_simple_data_structure_change() -> None:
             get_token_full[0:2],
             verify_pair,
         ],
-        ignore_validation=True,  # TODO: remove from this test, broken test semantics
     )
 
     result = await pipeline_with_sliced_return()
@@ -55,7 +53,6 @@ async def test_simple_data_structure_change() -> None:
             get_token_full[(0, 2)],
             verify_token_and_info,
         ],
-        ignore_validation=True,  # TODO: remove from this test, broken test semantics
     )
 
     result = await pipeline_tuple()

@@ -54,7 +54,7 @@ async def test_pipeline_errors(
     pipes: list[Pipe] = pipe_map[pipes_key]
 
     with pytest.raises(expected_exception):
-        Pipeline(pipes)
+        Pipeline(pipes, ignore_validation=False)
 
 
 @pytest.mark.asyncio

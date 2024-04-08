@@ -12,7 +12,7 @@ from etl_pipes.pipes.pipeline.pipe_welding_validator import PipeWeldingValidator
 class Pipeline(Pipe):
     pipes: list[Pipe] = field(default_factory=list)
     validator: PipeWeldingValidator = field(default_factory=PipeWeldingValidator)
-    ignore_validation: bool = field(default=False)
+    ignore_validation: bool = field(default=True)
     context: Context | None = field(default=None)
 
     def __post_init__(self) -> None:

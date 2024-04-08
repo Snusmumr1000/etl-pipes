@@ -50,14 +50,12 @@ async def test_simple_context() -> None:
                     MultiplierPipe2(multiplier=5),
                 ],
                 context=FiniteFieldContext(finite_field_order=37),
-                ignore_validation=True,
             ),
             MultiplierPipe2(multiplier=6, finite_field_order=29),
             MultiplierPipe(
                 multiplier=4, ff_context=FiniteFieldContext(finite_field_order=23)
             ),
         ],
-        ignore_validation=True,
     )
 
     pipeline_result = await pipeline(1)
