@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import copy
 import inspect
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from typing import Any, assert_never
 
+from etl_pipes.context import Context, ContextPart
 from etl_pipes.domain.types import AnyFunc
 
 
@@ -23,6 +24,25 @@ class Pipe:
     out: PipeOutput = field(init=False, default_factory=PipeOutput)
 
     __original_func: AnyFunc | None = field(init=False, default=None)
+
+    def apply_context(self, context: Context | None) -> None:
+        if context is None:
+            return
+
+        context_class = context.__class__
+        for dc_field in fields(self):
+            f_name = dc_field.name
+            f_type = dc_field.type
+            f_default = dc_field.default
+
+            if f_type == context_class and f_default == context_class:
+                setattr(self, f_name, context)
+
+            if context.has_part(f_name, f_type):
+                if isinstance(f_default, ContextPart):
+                    context_part = f_default
+                    if context_part.is_part_of(context_class):
+                        setattr(self, f_name, context.get_part(f_name))
 
     async def __call__(self, *args: Any) -> Any:
         if self.f is None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, assert_never
 
+from etl_pipes.context import Context
 from etl_pipes.pipes.base_pipe import Pipe
 from etl_pipes.pipes.pipeline.pipe_welding_validator import PipeWeldingValidator
 
@@ -12,9 +13,17 @@ class Pipeline(Pipe):
     pipes: list[Pipe] = field(default_factory=list)
     validator: PipeWeldingValidator = field(default_factory=PipeWeldingValidator)
     ignore_validation: bool = field(default=False)
+    context: Context | None = field(default=None)
 
     def __post_init__(self) -> None:
+        self.apply_context(self.context)
+
         self._validate()
+
+    def apply_context(self, context: Context | None) -> None:
+        if context:
+            for pipe in self.pipes:
+                pipe.apply_context(context)
 
     async def __call__(self, *args: Any) -> Any:
         self._validate()
