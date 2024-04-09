@@ -64,15 +64,16 @@ async def test_simple_actor() -> None:
     actor_system = ActorSystem(
         actors=[splitting_actor, digit_actor, print_actor],
         no_outcome_timeout=timedelta(seconds=1),
-        initial_result_messages=[
-            Message(data="11,22,3b3", receiver_id=splitting_actor.id),
-            Message(data="44,55,66", receiver_id=splitting_actor.id),
-        ],
     )
 
     splitting_actor >> digit_actor >> print_actor
 
     actor_system_run_task = asyncio.create_task(actor_system.run())
+    for msg in [
+        Message(data="11,22,3b3", receiver_id=splitting_actor.id),
+        Message(data="44,55,66", receiver_id=splitting_actor.id),
+    ]:
+        await actor_system.insert_result_message(msg)
     await asyncio.sleep(5)
     actor_system.kill()
     await actor_system_run_task

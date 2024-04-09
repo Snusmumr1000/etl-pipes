@@ -23,8 +23,6 @@ from etl_pipes.actors.common.types import (
 class ActorSystem:
     actors: list[Actor]
     connections: list[tuple[Actor, Actor]] = field(default_factory=list)
-    initial_result_messages: list[Message] = field(default_factory=list)
-    initial_exception_messages: list[Message] = field(default_factory=list)
 
     no_outcome_timeout: timedelta = field(default_factory=lambda: timedelta(seconds=10))
     should_be_killed_event: asyncio.Event = field(default_factory=asyncio.Event)
@@ -49,10 +47,11 @@ class ActorSystem:
     def __post_init__(self) -> None:
         self.actors_dict = {actor.id: actor for actor in self.actors}
         self.actor_ids = {actor.id for actor in self.actors}
+        for actor in self.actors:
+            actor.system = self
 
     async def run(self) -> None:
         self.generate_pairs()
-        await self.distribute_initial_messages()
 
         async def process_message(
             message: Message,
@@ -117,12 +116,6 @@ class ActorSystem:
             (self.actors_dict[sender_actor_id], self.actors_dict[receiver_actor_id])
             for (sender_actor_id, receiver_actor_id) in pairs
         ]
-
-    async def distribute_initial_messages(self) -> None:
-        for message in self.initial_result_messages:
-            await self.results_to_send.put(message)
-        for exception in self.initial_exception_messages:
-            await self.exceptions_to_send.put(exception)
 
     async def distribute_output(
         self, trace_id: MessageTraceId, output: Output, sender: Actor
@@ -204,3 +197,9 @@ class ActorSystem:
             collected_results, _ = outputs[actor_id]
             outputs[actor_id] = (collected_results, collected_exceptions)
         return outputs
+
+    async def insert_result_message(self, message: Message) -> None:
+        await self.results_to_send.put(message)
+
+    async def insert_exception_message(self, message: Message) -> None:
+        await self.exceptions_to_send.put(message)

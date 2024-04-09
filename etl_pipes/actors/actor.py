@@ -6,7 +6,7 @@ from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from typing import Any
 
-from etl_pipes.actors.common.types import ActorId, Output
+from etl_pipes.actors.common.types import ActorId, IActorSystem, Output
 
 
 @dataclass
@@ -19,6 +19,7 @@ class Actor:
 
     receiving_actors: dict[ActorId, Actor] = field(default_factory=dict)
     sending_actors: dict[ActorId, Actor] = field(default_factory=dict)
+    system: IActorSystem | None = None
 
     async def process_result(self, result: Any) -> Output | None:
         raise NotImplementedError("Actor must implement process_message method")

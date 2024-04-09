@@ -53,4 +53,8 @@ class Output:
 
 
 class IActorSystem(Protocol):
-    pass
+    async def insert_result_message(self, message: Message) -> None:
+        ...
+
+    async def insert_exception_message(self, message: Message) -> None:
+        ...
