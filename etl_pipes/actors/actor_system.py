@@ -187,10 +187,10 @@ class ActorSystem:
 
     def get_collected_outputs(
         self,
-    ) -> dict[ActorId, tuple[asyncio.Queue[Message], asyncio.Queue[Message]]]:
-        outputs: dict[
+    ) -> defaultdict[ActorId, tuple[asyncio.Queue[Message], asyncio.Queue[Message]]]:
+        outputs: defaultdict[
             ActorId, tuple[asyncio.Queue[Message], asyncio.Queue[Message]]
-        ] = {}
+        ] = defaultdict(lambda: (asyncio.Queue(), asyncio.Queue()))
         for actor_id, collected_results in self.collected_results.items():
             outputs[actor_id] = (collected_results, asyncio.Queue())
         for actor_id, collected_exceptions in self.collected_exceptions.items():
