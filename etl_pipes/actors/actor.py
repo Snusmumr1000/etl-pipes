@@ -12,14 +12,18 @@ from etl_pipes.actors.common.types import ActorId, IActorSystem, Output
 @dataclass
 class Actor:
     name: str
-    id: ActorId = field(default_factory=lambda: ActorId(str(uuid.uuid4())))
+    id: ActorId = field(init=False, default_factory=lambda: ActorId(str(uuid.uuid4())))
 
-    results_buffer: asyncio.Queue[Any] = field(default_factory=asyncio.Queue)
-    exceptions_buffer: asyncio.Queue[Exception] = field(default_factory=asyncio.Queue)
+    results_buffer: asyncio.Queue[Any] = field(
+        init=False, default_factory=asyncio.Queue
+    )
+    exceptions_buffer: asyncio.Queue[Exception] = field(
+        init=False, default_factory=asyncio.Queue
+    )
 
-    receiving_actors: dict[ActorId, Actor] = field(default_factory=dict)
-    sending_actors: dict[ActorId, Actor] = field(default_factory=dict)
-    system: IActorSystem | None = None
+    receiving_actors: dict[ActorId, Actor] = field(init=False, default_factory=dict)
+    sending_actors: dict[ActorId, Actor] = field(init=False, default_factory=dict)
+    system: IActorSystem | None = field(init=False, default=None)
 
     async def process_result(self, result: Any) -> Output | None:
         raise NotImplementedError("Actor must implement process_message method")
