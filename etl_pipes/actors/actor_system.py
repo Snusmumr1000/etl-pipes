@@ -187,15 +187,15 @@ class ActorSystem:
 
     def get_collected_outputs(
         self,
-    ) -> defaultdict[ActorId, tuple[asyncio.Queue[Message], asyncio.Queue[Message]]]:
-        outputs: defaultdict[
+    ) -> dict[ActorId, tuple[asyncio.Queue[Message], asyncio.Queue[Message]]]:
+        outputs: dict[
             ActorId, tuple[asyncio.Queue[Message], asyncio.Queue[Message]]
-        ] = defaultdict(lambda: (asyncio.Queue(), asyncio.Queue()))
-        for actor_id, collected_results in self.collected_results.items():
-            outputs[actor_id] = (collected_results, asyncio.Queue())
-        for actor_id, collected_exceptions in self.collected_exceptions.items():
-            collected_results, _ = outputs[actor_id]
-            outputs[actor_id] = (collected_results, collected_exceptions)
+        ] = {}
+        for actor_id in self.actor_ids:
+            outputs[actor_id] = (
+                self.collected_results[actor_id],
+                self.collected_exceptions[actor_id],
+            )
         return outputs
 
     async def insert_result_message(
