@@ -70,7 +70,7 @@ async def test_simple_actor() -> None:
 
     actor_system_run_task = asyncio.create_task(actor_system.run())
     for msg in ["11,22,3b3", "44,55,66"]:
-        await actor_system.insert_result_message(msg, splitting_actor.id)
+        await actor_system.insert_result_message(msg, to_actor=splitting_actor.id)
     await asyncio.sleep(5)
     actor_system.kill()
     await actor_system_run_task

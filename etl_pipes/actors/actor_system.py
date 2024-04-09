@@ -198,12 +198,35 @@ class ActorSystem:
             outputs[actor_id] = (collected_results, collected_exceptions)
         return outputs
 
-    async def insert_result_message(self, data: Any, actor_id: ActorId) -> None:
-        message = Message(data=data, receiver_id=actor_id)
-        await self.results_to_send.put(message)
+    async def insert_result_message(
+        self,
+        data: Any,
+        from_actor: ActorId | None = None,
+        to_actor: ActorId | None = None,
+    ) -> None:
+        await self.insert_message(self.results_to_send, data, from_actor, to_actor)
 
     async def insert_exception_message(
-        self, data: Exception, actor_id: ActorId
+        self,
+        data: Exception,
+        from_actor: ActorId | None = None,
+        to_actor: ActorId | None = None,
     ) -> None:
-        message = Message(data=data, receiver_id=actor_id)
-        await self.exceptions_to_send.put(message)
+        await self.insert_message(self.exceptions_to_send, data, from_actor, to_actor)
+
+    async def insert_message(
+        self,
+        queue: asyncio.Queue[Message],
+        data: Any,
+        from_actor: ActorId | None,
+        to_actor: ActorId | None,
+    ) -> None:
+        if to_actor:
+            message = Message(data=data, receiver_id=to_actor)
+            await queue.put(message)
+
+        if from_actor:
+            receivers = self.actors_dict[from_actor].receiving_actors
+            for receiver_id in receivers:
+                message = Message(data=data, receiver_id=receiver_id)
+                await queue.put(message)
