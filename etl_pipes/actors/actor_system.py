@@ -25,16 +25,24 @@ class ActorSystem:
     connections: list[tuple[Actor, Actor]] = field(default_factory=list)
 
     no_outcome_timeout: timedelta = field(default_factory=lambda: timedelta(seconds=10))
-    should_be_killed_event: asyncio.Event = field(default_factory=asyncio.Event)
+    debug: bool = field(default=False)
 
-    results_to_send: asyncio.Queue[Message] = field(default_factory=asyncio.Queue)
-    exceptions_to_send: asyncio.Queue[Message] = field(default_factory=asyncio.Queue)
+    should_be_killed_event: asyncio.Event = field(
+        init=False, default_factory=asyncio.Event
+    )
+
+    results_to_send: asyncio.Queue[Message] = field(
+        init=False, default_factory=asyncio.Queue
+    )
+    exceptions_to_send: asyncio.Queue[Message] = field(
+        init=False, default_factory=asyncio.Queue
+    )
 
     collected_results: dict[ActorId, asyncio.Queue[Message]] = field(
-        default_factory=lambda: defaultdict(asyncio.Queue)
+        init=False, default_factory=lambda: defaultdict(asyncio.Queue)
     )
     collected_exceptions: dict[ActorId, asyncio.Queue[Message]] = field(
-        default_factory=lambda: defaultdict(asyncio.Queue)
+        init=False, default_factory=lambda: defaultdict(asyncio.Queue)
     )
 
     actors_dict: dict[ActorId, Actor] = field(default_factory=dict)
@@ -64,12 +72,19 @@ class ActorSystem:
                     if message.sender_id
                     else "considered to be discarded"
                 )
-                log_message_info(message, log_action, log_data=True)
+
+                self.debug and log_message_info(  # type: ignore[func-returns-value]
+                    message, log_action, log_data=True
+                )
+
                 if message.sender_id:
                     await collected[message.sender_id].put(message)
                 return
 
-            log_message_info(message, "considered to be sent", log_data=True)
+            self.debug and log_message_info(  # type: ignore[func-returns-value]
+                message, "considered to be sent", log_data=True
+            )
+
             receiver = self.actors_dict[message.receiver_id]
             output = await process_func(receiver, message.data)
             if output is not None:
