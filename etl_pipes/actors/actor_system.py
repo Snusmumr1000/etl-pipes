@@ -198,8 +198,12 @@ class ActorSystem:
             outputs[actor_id] = (collected_results, collected_exceptions)
         return outputs
 
-    async def insert_result_message(self, message: Message) -> None:
+    async def insert_result_message(self, data: Any, actor_id: ActorId) -> None:
+        message = Message(data=data, receiver_id=actor_id)
         await self.results_to_send.put(message)
 
-    async def insert_exception_message(self, message: Message) -> None:
+    async def insert_exception_message(
+        self, data: Exception, actor_id: ActorId
+    ) -> None:
+        message = Message(data=data, receiver_id=actor_id)
         await self.exceptions_to_send.put(message)

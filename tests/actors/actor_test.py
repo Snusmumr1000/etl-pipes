@@ -8,7 +8,7 @@ import pytest
 
 from etl_pipes.actors.actor import Actor
 from etl_pipes.actors.actor_system import ActorSystem
-from etl_pipes.actors.common.types import Message, Output
+from etl_pipes.actors.common.types import Output
 
 
 async def random_sleep() -> None:
@@ -69,11 +69,8 @@ async def test_simple_actor() -> None:
     splitting_actor >> digit_actor >> print_actor
 
     actor_system_run_task = asyncio.create_task(actor_system.run())
-    for msg in [
-        Message(data="11,22,3b3", receiver_id=splitting_actor.id),
-        Message(data="44,55,66", receiver_id=splitting_actor.id),
-    ]:
-        await actor_system.insert_result_message(msg)
+    for msg in ["11,22,3b3", "44,55,66"]:
+        await actor_system.insert_result_message(msg, splitting_actor.id)
     await asyncio.sleep(5)
     actor_system.kill()
     await actor_system_run_task
