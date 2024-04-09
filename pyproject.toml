@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "etl-pipes"
-version = "0.6.0"
+version = "0.6.1"
 description = ""
 authors = [ "Tikhon Zaikin <th@thevhs.club>",]
 readme = "README.md"
