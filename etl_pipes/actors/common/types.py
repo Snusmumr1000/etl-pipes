@@ -53,10 +53,18 @@ class Output:
 
 
 class IActorSystem(Protocol):
-    async def insert_result_message(self, data: Any, actor_id: ActorId) -> None:
+    async def insert_result_message(
+        self,
+        data: Any,
+        from_actor: ActorId | None = None,
+        to_actor: ActorId | None = None,
+    ) -> None:
         ...
 
     async def insert_exception_message(
-        self, data: Exception, actor_id: ActorId
+        self,
+        data: Exception,
+        from_actor: ActorId | None = None,
+        to_actor: ActorId | None = None,
     ) -> None:
         ...
