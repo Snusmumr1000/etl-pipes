@@ -2,7 +2,7 @@
 
 ## Description
 
-Pypelines is a Python library for creating flow-based programming pipelines.
+etl-pipes is a Python library for creating flow-based programming pipelines.
 
 ## Primitives
 
