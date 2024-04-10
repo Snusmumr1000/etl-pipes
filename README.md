@@ -9,7 +9,7 @@ Pypelines is a Python library for creating flow-based programming pipelines.
 ### Implemented
 
 - Pipeline
-  - used to combine pipes into a single sequential pipeline, used to implement "&&" operator
+  - used to combine pipes into a single sequential pipeline, used to implement "|" operator
 - Parallel
   - used to combine pipes into a single parallel pipeline
 - Maybe
