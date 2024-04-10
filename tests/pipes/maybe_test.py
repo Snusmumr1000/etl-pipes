@@ -38,6 +38,13 @@ async def test_maybe_with_fallback_pipe() -> None:
 
 
 @pytest.mark.asyncio
+async def test_maybe_with_two_fails_and_one_fallback_pipe() -> None:
+    maybe_pipe = Maybe(failing_pipe).otherwise(failing_pipe).otherwise(successful_pipe)
+    result = await maybe_pipe()
+    assert result == "Success"
+
+
+@pytest.mark.asyncio
 async def test_maybe_with_all_failing_pipes() -> None:
     maybe_pipe = Maybe(failing_pipe).otherwise(failing_pipe)
     with pytest.raises(UnhandledNothingError):
