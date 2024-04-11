@@ -16,18 +16,19 @@ etl-pipes is a Python library for creating flow-based programming pipelines.
   - used to implement a pattern Chain of Responsibility and "||" operator
 - MapReduce
   - used to implement MapReduce pattern (chunking, mapping chunks, reducing to a single result) 
-
-### Planned
-
 - Void
   - used to implement ";" operator
-- Stream
-  - used to implement Observable + Observer pattern
-  - can be implemented with asyncio, threading, multiprocessing
+- Actor System
+  - used to create asynchronous pipelines, using asyncio under the hood
+- Context
+  - used to pass data in the whole pipeline, read-only
+
 
 ## Examples
 
 ### Basic usage
+
+#### Hello world
 
 A trivial example of a pipeline with two simple pipes. 
 Here two operations of summing and raising to a power are combined into one pipeline. 
@@ -58,6 +59,8 @@ async def test_if_as_base_pipe_works() -> None:
 
     assert result == (2 + 2) ** (2 + 2)
 ```
+
+#### Parallel
 
 An example of a parallel execution of pipes. 
 Currently, it works only with asyncio.
@@ -115,6 +118,8 @@ async def test_parallel_log_to_console_and_log_to_file() -> None:
     assert log_path.read_text() == "test"
 ```
 
+#### Maybe
+
 `Maybe` pipe example. 
 It is an implementation of pattern Chain of Responsibility. 
 
@@ -155,6 +160,183 @@ async def test_maybe_with_all_failing_pipes() -> None:
     maybe_pipe = Maybe(failing_pipe).otherwise(failing_pipe)
     with pytest.raises(UnhandledNothingError):
         await maybe_pipe()
+```
+
+#### MapReduce
+
+`MapReduce` pipe example.
+
+It is an implementation of the MapReduce pattern.
+It splits the input data, maps each chunk, and then reduces the results to a single value.
+
+```python
+@pytest.mark.asyncio
+async def test_if_map_reduce_pipe_works() -> None:
+    @dataclass
+    class SomeMapReduce(MapReduce):
+        async def split(self, iterable: Iterable[Any]) -> Iterable[Any]:
+            return [*iterable]
+
+        async def map(self, chunks: Iterable[Any]) -> Iterable[Any]:
+            def log_chunk(idx: int, c_: Any) -> Any:
+                print(f"chunk {idx}: {c_}")
+                return c_
+
+            results = [log_chunk(i, chunk) for i, chunk in enumerate(chunks)]
+            return results
+
+        async def reduce(self, mapped_chunks: Iterable[Any]) -> Any:
+            return tuple(mapped_chunks)
+
+    @dataclass
+    class SomeObject:
+        a: int = 0
+        b: str = ""
+        c: float = 0.0
+
+    map_reduce = SomeMapReduce()
+    chunks = (1, "string", 2.0, 3, "another string", SomeObject())
+    result = await map_reduce(chunks)
+
+    assert result == (1, "string", 2.0, 3, "another string", SomeObject())
+```
+
+#### Void
+
+`Void` pipe example.
+
+It is used to ignore the result of the previous pipe.
+Here, we are doing a simple check of the token and raising an exception if it is not correct.
+If everything is correct, we go on and get an item. Previous data is ignored.
+
+```python
+@pytest.mark.asyncio
+async def test_pipeline_void() -> None:
+    @as_pipe
+    def exchange_token(token: str) -> str:
+        return token + " exchanged"
+
+    @as_pipe
+    def check_auth(token: str) -> None:
+        required_token = "token exchanged"
+        if token != required_token:
+            raise Exception("Not authorized")
+
+    @as_pipe
+    def get_item() -> dict[str, str]:
+        return {"item": "item"}
+
+    pipeline = Pipeline(
+        [
+            exchange_token,
+            check_auth.void(),
+            get_item,
+        ]
+    )
+
+    auth_token = "token"
+    item = await pipeline(auth_token)
+    assert item == {"item": "item"}
+
+    wrong_token = "wrong token"
+    with pytest.raises(Exception):
+        await pipeline(wrong_token)
+```
+
+
+#### Actor System
+
+`ActorSystem` example.
+
+It is an experimental feature that allows creating asynchronous pipelines.
+It is based on queues and uses them to pass messages between pipes.
+Every `Actor` is a separate task that processes messages from the queue.
+It's interface is not that minimalistic as other pipes, the work is still in progress.
+
+```python
+@pytest.mark.asyncio
+async def test_simple_actor() -> None:
+    splitting_actor = SplittingActor()
+    digit_actor = DigitActor()
+    print_actor = PrintActor()
+
+    actor_system = ActorSystem(
+        actors=[splitting_actor, digit_actor, print_actor],
+        no_outcome_timeout=timedelta(seconds=1),
+    )
+
+    splitting_actor >> digit_actor >> print_actor
+    
+    actor_system_run_task = asyncio.create_task(actor_system.run())
+
+    for msg in ["11,22,3b3", "44,55,66"]:
+        await actor_system.insert_result_message(msg, to_actor=splitting_actor.id)
+
+    async for result in actor_system.stream_actor_unpacked_results(print_actor):
+        results.append(result)
+```
+
+#### Context
+
+`Context` example.
+
+It is used to pass data in the whole pipeline, read-only.
+
+```python
+@pytest.mark.asyncio
+async def test_simple_context() -> None:
+    @dataclass
+    class FiniteFieldContext(Context):
+        finite_field_order: int
+
+    @dataclass
+    class MultiplierPipe(Pipe):
+        multiplier: int
+        ff_context: FiniteFieldContext = full(FiniteFieldContext)  # noqa: RUF009
+
+        async def __call__(self, data: int) -> int:
+            res = data * self.multiplier % self.ff_context.finite_field_order
+            print(
+                f"{data} * {self.multiplier} "
+                f"% {self.ff_context.finite_field_order} = {res}"
+            )
+            return res
+
+    @dataclass
+    class MultiplierPipe2(Pipe):
+        multiplier: int
+        finite_field_order: int = single(FiniteFieldContext)  # noqa: RUF009
+
+        async def __call__(self, data: int) -> int:
+            res = data * self.multiplier % self.finite_field_order
+            print(f"{data} * {self.multiplier} % {self.finite_field_order} = {res}")
+            return res
+
+    pipeline = Pipeline(
+        [
+            Pipeline(
+                [
+                    MultiplierPipe(multiplier=2),
+                    Pipeline(
+                        [
+                            MultiplierPipe2(multiplier=3),
+                            MultiplierPipe(multiplier=4),
+                        ],
+                    ),
+                    MultiplierPipe2(multiplier=5),
+                ],
+                context=FiniteFieldContext(finite_field_order=37),
+            ),
+            MultiplierPipe2(multiplier=6, finite_field_order=29),
+            MultiplierPipe(
+                multiplier=4, ff_context=FiniteFieldContext(finite_field_order=23)
+            ),
+        ],
+    )
+
+    pipeline_result = await pipeline(1)
+    true_result = 1 * 2 % 37 * 3 % 37 * 4 % 37 * 5 % 37 * 6 % 29 * 4 % 23
+    assert true_result == pipeline_result
 ```
 
 ### Advanced usage
@@ -259,6 +441,5 @@ Now we use tuple for it, and we can only pass positional arguments. It is not co
 - [ ] Implement `Parallel` pipe as ABC or Protocol and make `AsyncioParallel` a subclass of it
 - [ ] Think about getting rid of square brackets in `Parallel` and `Pipeline` and rename them to `par` and `seq` respectively, overall interface improvement
 - [ ] Fix broken endpoints in web app test case
-- [ ] Setup PyPi publishing
 - [ ] Create `Void` (or `_`) pipe instead of using `.void()` method
 - [ ] Create more test cases for `MapReduce` pipe
