@@ -64,10 +64,11 @@ async def test_pipeline_void() -> None:
         return token + " exchanged"
 
     @as_pipe
-    def check_auth(token: str) -> None:
+    def check_auth(token: str) -> bool:
         required_token = "token exchanged"
         if token != required_token:
             raise Exception("Not authorized")
+        return True
 
     @as_pipe
     def get_item() -> dict[str, str]:
