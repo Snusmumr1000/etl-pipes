@@ -59,6 +59,15 @@ async def test_pipeline_errors(
 
 @pytest.mark.asyncio
 async def test_pipeline_void() -> None:
+    await test_pipeline_void_common(True)
+
+
+@pytest.mark.asyncio
+async def test_pipeline_void_none_interface() -> None:
+    await test_pipeline_void_common(False)
+
+
+async def test_pipeline_void_common(use_none_interface: bool = True) -> None:
     @as_pipe
     def exchange_token(token: str) -> str:
         return token + " exchanged"
@@ -77,15 +86,17 @@ async def test_pipeline_void() -> None:
     pipeline = Pipeline(
         [
             exchange_token,
-            check_auth.void(),
+            check_auth[None] if use_none_interface else check_auth.void(),
             get_item,
         ]
     )
 
+    # Run the test for a valid token
     auth_token = "token"
     item = await pipeline(auth_token)
     assert item == {"item": "item"}
 
+    # Run the test for an invalid token
     wrong_token = "wrong token"
     with pytest.raises(Exception):
         await pipeline(wrong_token)

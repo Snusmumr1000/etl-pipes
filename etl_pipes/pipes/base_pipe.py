@@ -25,6 +25,13 @@ class Pipe:
 
     __original_func: AnyFunc | None = field(init=False, default=None)
 
+    async def __call__(self, *args: Any) -> Any:
+        if self.f is None:
+            raise NotImplementedError(
+                "Pipe must be initialized with a coroutine function"
+            )
+        return await self.f(*args)
+
     def apply_context(self, context: Context | None) -> None:
         if context is None:
             return
@@ -43,13 +50,6 @@ class Pipe:
                     context_part = f_default
                     if context_part.is_part_of(context_class):
                         setattr(self, f_name, context.get_part(f_name))
-
-    async def __call__(self, *args: Any) -> Any:
-        if self.f is None:
-            raise NotImplementedError(
-                "Pipe must be initialized with a coroutine function"
-            )
-        return await self.f(*args)
 
     @property
     def func(self) -> AnyFunc | None:
