@@ -50,3 +50,20 @@ async def test_if_as_base_pipe_works() -> None:
     result = await pipeline(2, 2)
 
     assert result == (2 + 2) ** (2 + 2)
+
+
+@pytest.mark.asyncio
+async def test_if_tuple_in_arg_flow_works() -> None:
+    @as_pipe
+    def mod(a: int, b: int) -> tuple[int, int, int]:
+        return a, b, a % b
+
+    @as_pipe
+    def print_(a: int, b: int, a_mod_b: int) -> str:
+        return f"{a} % {b} = {a_mod_b}"
+
+    pipeline = Pipeline([mod, print_])
+
+    result = await pipeline(10, 3)
+
+    assert result == "10 % 3 = 1"
