@@ -2,6 +2,7 @@ import pytest
 
 from etl_pipes.pipes.base_pipe import as_pipe
 from etl_pipes.pipes.pipeline.pipeline import Pipeline
+from etl_pipes.pipes.void import Void
 
 
 @pytest.mark.asyncio
@@ -61,7 +62,8 @@ async def test_simple_data_structure_change() -> None:
 
     pipeline_none = Pipeline(
         [
-            get_token_full[None],
+            get_token_full,
+            Void(),
             dev_null,
         ],
     )

@@ -7,6 +7,7 @@ from etl_pipes.pipes.pipeline.exceptions import (
     PipelineTypeError,
 )
 from etl_pipes.pipes.pipeline.pipeline import Pipeline
+from etl_pipes.pipes.void import Void
 from tests.etl.odds.convert_to_american_pipe import ToAmericanPipe
 from tests.etl.odds.transform_pipe import OuterToInnerPipe
 from tests.etl.odds.types import InnerOdds, OuterOdds
@@ -58,16 +59,7 @@ async def test_pipeline_errors(
 
 
 @pytest.mark.asyncio
-async def test_pipeline_void() -> None:
-    await test_pipeline_void_common(True)
-
-
-@pytest.mark.asyncio
-async def test_pipeline_void_none_interface() -> None:
-    await test_pipeline_void_common(False)
-
-
-async def test_pipeline_void_common(use_none_interface: bool = True) -> None:
+async def test_pipeline_void_common() -> None:
     @as_pipe
     def exchange_token(token: str) -> str:
         return token + " exchanged"
@@ -86,7 +78,8 @@ async def test_pipeline_void_common(use_none_interface: bool = True) -> None:
     pipeline = Pipeline(
         [
             exchange_token,
-            check_auth[None] if use_none_interface else check_auth.void(),
+            check_auth,
+            Void(),
             get_item,
         ]
     )

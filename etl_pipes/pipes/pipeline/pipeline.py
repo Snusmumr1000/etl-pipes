@@ -29,30 +29,32 @@ class Pipeline(Pipe):
         self._validate()
 
         data = args
-        prev_pipe = None
 
         for pipe in self.pipes:
-            if prev_pipe and prev_pipe.is_void:
-                data = await pipe()
-            # think about library type for this,
-            # tuple seems to be a crucial part of the pipeline
-            elif type(data) is tuple:
-                data = await pipe(*data)
-            else:
-                data = await pipe(data)
+            data = await self._call_pipe_with_data(pipe, data)
 
             if pipe.out.is_modified:
-                match pipe.out.pos:
-                    case int():
-                        data = data[pipe.out.pos]
-                    case slice():
-                        data = tuple(data[pipe.out.pos])
-                    case tuple():
-                        data = tuple(data[i] for i in pipe.out.pos)
-                    case _:
-                        assert_never(pipe.out.pos)
+                data = self._modify_output(pipe.out.pos, data)
+        return data
 
-            prev_pipe = pipe
+    async def _call_pipe_with_data(self, pipe: Pipe, data: Any) -> Any:
+        # think about library type for this,
+        # tuple seems to be a crucial part of the pipeline
+        if type(data) is tuple:
+            return await pipe(*data)
+        else:
+            return await pipe(data)
+
+    def _modify_output(self, pos: int | slice | tuple[int, ...], data: Any) -> Any:
+        match pos:
+            case int():
+                data = data[pos]
+            case slice():
+                data = tuple(data[pos])
+            case tuple():
+                data = tuple(data[i] for i in pos)
+            case _:
+                assert_never(pos)
         return data
 
     def __rshift__(self, other: Pipe) -> Pipeline:

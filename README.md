@@ -230,7 +230,8 @@ async def test_pipeline_void() -> None:
     pipeline = Pipeline(
         [
             exchange_token,
-            check_auth.void(),
+            check_auth,
+            Void(),
             get_item,
         ]
     )
@@ -356,6 +357,7 @@ from sqlalchemy.orm import Session
 from etl_pipes.pipes.maybe import Maybe
 from etl_pipes.pipes.parallel import Parallel
 from etl_pipes.pipes.pipeline.pipeline import Pipeline
+from etl_pipes.pipes.void import Void
 from tests.web_api.auth import AuthToken, CheckAccessForTodo, Ops
 from tests.web_api.cache.todo_cache import CacheTodoDTO, GetTodoAndItemsFromCache
 from tests.web_api.db import models
@@ -376,7 +378,8 @@ async def read_todo(
 ) -> GetTodoDto:
     pipeline = Pipeline(
         [
-            CheckAccessForTodo(token, todo_id, ops=[Ops.Read]).void(),  # changes return type to None
+            CheckAccessForTodo(token, todo_id, ops=[Ops.Read]),  # changes return type to None
+            Void(),
             Maybe(
                 GetTodoAndItemsFromCache(todo_id=todo_id),
             ).otherwise(
@@ -442,5 +445,5 @@ Now we use tuple for it, and we can only pass positional arguments. It is not co
 - [ ] Implement `Parallel` pipe as ABC or Protocol and make `AsyncioParallel` a subclass of it
 - [ ] Think about getting rid of square brackets in `Parallel` and `Pipeline` and rename them to `par` and `seq` respectively, overall interface improvement
 - [ ] Fix broken endpoints in web app test case
-- [ ] Create `Void` (or `_`) pipe instead of using `.void()` method
+- [X] ~~Create `Void` (or `_`) pipe instead of using `.void()` method~~
 - [ ] Create more test cases for `MapReduce` pipe

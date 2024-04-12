@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from etl_pipes.pipes.maybe import Maybe
 from etl_pipes.pipes.parallel import Parallel
 from etl_pipes.pipes.pipeline.pipeline import Pipeline
+from etl_pipes.pipes.void import Void
 from tests.web_api.auth import AuthToken, CheckAccessForItem, CheckAccessForTodo, Ops
 from tests.web_api.cache.todo_cache import CacheTodoDTO, GetTodoAndItemsFromCache
 from tests.web_api.db import connection, models
@@ -95,7 +96,8 @@ async def read_todo(
 ) -> GetTodoDto:
     pipeline = Pipeline(
         [
-            CheckAccessForTodo(token, todo_id, ops=[Ops.Read]).void(),
+            CheckAccessForTodo(token, todo_id, ops=[Ops.Read]),
+            Void(),
             Maybe(
                 GetTodoAndItemsFromCache(todo_id=todo_id),
             ).otherwise(

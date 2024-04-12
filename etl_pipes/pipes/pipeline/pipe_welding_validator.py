@@ -80,8 +80,6 @@ class PipeWeldingValidator:
     def _validate_pipe_typing(self, pipes: list[Pipe]) -> None:
         for i in range(len(pipes) - 1):
             current_pipe = pipes[i]
-            if current_pipe.is_void:
-                continue
 
             next_pipe = pipes[i + 1]
 
