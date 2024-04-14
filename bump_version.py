@@ -41,34 +41,57 @@ def main(
             "Exactly one of --major, --minor, or --patch must be provided."
         )
 
+    new_version = change_pyproject_version(major, minor, patch)
+
+    # Poetry build and publishw
+    poetry_build()
+    poetry_publish()
+
+    # Git commit
+    git_commit_new_version(new_version)
+    git_tag_new_version(new_version)
+    git_push_new_version()
+
+    typer.echo(f"Version bumped to {new_version} and published.")
+
+
+def change_pyproject_version(major, minor, patch):
     # Load pyproject.toml
     with open("pyproject.toml") as file:
         pyproject = toml.load(file)
-
     current_version = pyproject["tool"]["poetry"]["version"]
     new_version = bump_version(current_version, major, minor, patch)
-
     # Update pyproject.toml with new version
     typer.echo(f"Bumping version from {current_version} to {new_version}")
     pyproject["tool"]["poetry"]["version"] = new_version
     with open("pyproject.toml", "w") as file:
         toml.dump(pyproject, file)
+    return new_version
 
-    # Poetry build and publish
-    typer.echo("Building package...")
-    run_command(["poetry", "build"])
-    typer.echo("Publishing package...")
-    run_command(["poetry", "publish"])
 
-    # Git commit
-    typer.echo("Committing changes...")
-    run_command(["git", "add", "pyproject.toml"])
-    run_command(["git", "commit", "-m", f"Bump version to {new_version}"])
-    run_command(["git", "tag", new_version])
+def git_push_new_version():
     typer.echo("Pushing changes...")
     run_command(["git", "push"])
 
-    typer.echo(f"Version bumped to {new_version} and published.")
+
+def git_tag_new_version(new_version):
+    run_command(["git", "tag", new_version])
+
+
+def git_commit_new_version(new_version):
+    typer.echo("Committing changes...")
+    run_command(["git", "add", "pyproject.toml"])
+    run_command(["git", "commit", "-m", f"Bump version to {new_version}"])
+
+
+def poetry_publish():
+    typer.echo("Publishing package...")
+    run_command(["poetry", "publish"])
+
+
+def poetry_build():
+    typer.echo("Building package...")
+    run_command(["poetry", "build"])
 
 
 if __name__ == "__main__":
