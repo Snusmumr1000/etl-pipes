@@ -21,14 +21,8 @@ class Maybe(Pipe):
     responsible_pipes: list[Pipe] = field(init=False, default_factory=list)
 
     def __post_init__(self) -> None:
-        self.responsible_pipes = [*self.responsible_pipes, self.input_pipe]
-
-    def __or(self, pipe: Pipe) -> Maybe:
-        self.responsible_pipes = [*self.responsible_pipes, pipe]
-        return self
-
-    def otherwise(self, pipe: Pipe) -> Maybe:
-        return self.__or(pipe)
+        # appends to empty list
+        self.append_responsible_pipe(self.input_pipe)
 
     async def __call__(self, *args: Any) -> Any:
         for pipe in self.responsible_pipes:
@@ -37,3 +31,13 @@ class Maybe(Pipe):
             except Nothing:
                 pass
         raise UnhandledNothingError("No pipe was able to handle the input")
+
+    def otherwise(self, pipe: Pipe) -> Maybe:
+        return self.__or(pipe)
+
+    def __or(self, pipe: Pipe) -> Maybe:
+        self.append_responsible_pipe(pipe)
+        return self
+
+    def append_responsible_pipe(self, pipe: Pipe) -> None:
+        self.responsible_pipes = [*self.responsible_pipes, pipe]

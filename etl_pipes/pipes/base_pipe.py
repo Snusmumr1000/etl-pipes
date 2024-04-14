@@ -34,15 +34,17 @@ class Pipe:
 
         context_class = context.__class__
         for dc_field in fields(self):
-            f_name = dc_field.name
-            f_type = dc_field.type
-            f_default = dc_field.default
+            f_name, f_type, f_default = dc_field.name, dc_field.type, dc_field.default
 
+            # we check default, because it is being returned by full
+            # that's an indicator of applied full context
             if f_type == context_class and f_default == context_class:
                 setattr(self, f_name, context)
+                return
 
-            if context.has_part(f_name, f_type):
-                if isinstance(f_default, ContextPart):
+            # assume that it's context part
+            if isinstance(f_default, ContextPart):
+                if context.has_part(f_name, f_type):
                     context_part = f_default
                     if context_part.is_part_of(context_class):
                         setattr(self, f_name, context.get_part(f_name))
